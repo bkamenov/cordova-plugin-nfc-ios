@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-nfc-ios" version="1.0.0">
+  <name>NFC</name>
+  <description>Cordova NFC Plugin for iOS</description>
+  <license>Apache 2.0</license>
+  <keywords>cordova, nfc, ios</keywords>
+  <engines>
+      <engine name="cordova" version=">=12.0.0" />
+  </engines>
+  
+  <platform name="ios">
+    <js-module src="www/nfc.js" name="NFC">
+      <clobbers target="cordova.plugins.NFC" />
+    </js-module>
+
+   
+  </platform>
+</plugin>

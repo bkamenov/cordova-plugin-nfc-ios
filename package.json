@@ -1,0 +1,33 @@
+{
+  "name": "cordova-plugin-nfc-ios",
+  "version": "1.0.0",
+  "description": "Cordova NFC Plugin for iOS",
+  "license": "MIT",
+  "keywords": [
+    "ecosystem:cordova",
+    "cordova-ios",
+    "cordova",
+    "nfc"
+  ],
+  "engines": {
+    "cordova": ">=12.0.0",
+    "cordova-ios": ">=7.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bkamenov/cordova-plugin-nfc-ios.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bkamenov/cordova-plugin-nfc-ios/issues"
+  },
+  "author": "Boris Kamenov",
+  "cordova": {
+    "id": "cordova-plugin-nfc-ios",
+    "platforms": [
+      "ios"
+    ]
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
