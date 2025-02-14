@@ -13,6 +13,32 @@
       <clobbers target="cordova.plugins.NFC" />
     </js-module>
 
-   
+    <config-file parent="/*" target="config.xml">
+      <feature name="NfcPlugin">
+        <param name="ios-package" value="NfcPlugin" />
+      </feature>
+    </config-file>
+
+    <header-file src="src/ios/NfcPlugin.h" />
+    <source-file src="src/ios/NfcPlugin.m" />
+
+    <framework src="CoreNFC.framework" weak="true" />
+    
+    <config-file parent="com.apple.developer.nfc.readersession.formats" platform="ios" target="*-Debug.plist">
+      <array>
+        <string>TAG</string>
+      </array>
+    </config-file>
+    <config-file parent="com.apple.developer.nfc.readersession.formats" platform="ios" target="*-Release.plist">
+      <array>
+        <string>TAG</string>
+      </array>
+    </config-file>
+
+    <preference name="NFC_USAGE_DESCRIPTION" default="Read/Write NDEF messages." />
+    <config-file target="*-Info.plist" parent="NFCReaderUsageDescription">
+      <string>$NFC_USAGE_DESCRIPTION</string>
+    </config-file>
+
   </platform>
 </plugin>
