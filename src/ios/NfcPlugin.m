@@ -91,6 +91,7 @@
         } @catch(NSException *e) {
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Invalid NDEF Message provided."];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+            [self closeSession];
             return;
         }
         

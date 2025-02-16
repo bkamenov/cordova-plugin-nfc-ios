@@ -116,8 +116,8 @@ cordova.plugins.NFC.beginScanSession(
 const text = "Hello world";
 const encoder = new TextEncoder();
 
-// The call to write will use the existing read session to write the data
-// and then close the session
+// The call to write will create own session and when tag
+// is detected will overwrite it.
 cordova.plugins.NFC.write(
   [
     {
@@ -137,3 +137,5 @@ cordova.plugins.NFC.write(
   "Hold your phone near an NFC tag.",
   "Data has been successfully written.");
 ```
+
+If you like my work and want more nice plugins, you can get me a [beer or stake](https://www.paypal.com/donate/?business=RXTV6JES35UQW&amount=5&no_recurring=0&item_name=Let+me+create+more+inspiring+Cordova+plugins.&currency_code=EUR).
