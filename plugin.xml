@@ -9,6 +9,7 @@
   </engines>
   
   <platform name="ios">
+
     <js-module src="www/nfc.js" name="NFC">
       <clobbers target="cordova.plugins.NFC" />
     </js-module>
@@ -35,7 +36,7 @@
       </array>
     </config-file>
 
-    <preference name="NFC_USAGE_DESCRIPTION" default="Read/Write NDEF messages." />
+    <preference name="NFC_USAGE_DESCRIPTION" default="Read/Write NDEF records." />
     <config-file target="*-Info.plist" parent="NFCReaderUsageDescription">
       <string>$NFC_USAGE_DESCRIPTION</string>
     </config-file>

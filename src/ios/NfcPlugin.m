@@ -9,8 +9,10 @@
 
 @property (nonatomic, strong) NFCReaderSession *nfcSession;
 @property (nonatomic, strong) NSString *alertMessage;
+@property (nonatomic, strong) NSString *ndefWrittenAlertMessage;
 @property (nonatomic, strong) NFCNDEFMessage *ndefMessageToWrite;
 @property (nonatomic, assign) BOOL isWritingMode;
+@property (strong, nonatomic) NFCNDEFMessage *messageToWrite;
 
 @end
 
@@ -52,40 +54,65 @@
 }
 
 - (void)write:(CDVInvokedUrlCommand*)command {
-    /*
     if (@available(iOS 14.0, *)) {
-        NSString *alertMessage = [command.arguments objectAtIndex:0];
-        NSDictionary *message = [command.arguments objectAtIndex:1];
-        NSString *mimeType = message[@"mimeType"];
-        NSArray *ndefDataArray = message[@"ndefData"];
-
-        if (!ndefDataArray || ndefDataArray.count == 0) {
-            CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No data to write"];
-            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+        BOOL reusingSession = NO;
+        self.isWritingMode = YES;
+        
+        NSArray<NSDictionary *> *ndefRecords = [command argumentAtIndex:0];
+        self.alertMessage = [command.arguments objectAtIndex:1];
+        self.ndefWrittenAlertMessage = [command.arguments objectAtIndex:2];
+        NSMutableArray<NFCNDEFPayload*> *payloads = [NSMutableArray new];
+        
+        if (!self.alertMessage || [self.alertMessage length] == 0) {
+            self.alertMessage = @"Hold your phone near an NFC tag.";
+        }
+        
+        if (!self.ndefWrittenAlertMessage || [self.ndefWrittenAlertMessage length] == 0) {
+            self.ndefWrittenAlertMessage = @"Data successfully written to NFC tag.";
+        }
+        
+        @try {
+            for (id recordData in ndefRecords) {
+                NSNumber *tnfNumber = [recordData objectForKey:@"tnf"];
+                NFCTypeNameFormat tnf = (uint8_t)[tnfNumber intValue];
+                
+                NSData *type = [self stringToNSData:[recordData objectForKey:@"mimeType"]];
+                
+                NSData *identifier = [self uint8ArrayToNSData:[recordData objectForKey:@"id"]];
+                
+                NSData *payload = [self uint8ArrayToNSData:[recordData objectForKey:@"ndefData"]];
+                
+                NFCNDEFPayload *record = [[NFCNDEFPayload alloc] initWithFormat:tnf type:type identifier:identifier payload:payload];
+                [payloads addObject:record];
+            }
+   
+            NFCNDEFMessage *message = [[NFCNDEFMessage alloc] initWithNDEFRecords:payloads];
+            self.messageToWrite = message;
+        } @catch(NSException *e) {
+            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Invalid NDEF Message provided."];
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
             return;
         }
-
-        uint8_t ndefBytes[ndefDataArray.count];
-        for (int i = 0; i < ndefDataArray.count; i++) {
-            ndefBytes[i] = [ndefDataArray[i] unsignedCharValue];
+        
+        if (self.nfcSession && self.nfcSession.isReady) {
+            reusingSession = YES;
+        }
+        else {
+            self.nfcSession = [[NFCTagReaderSession alloc]
+                       initWithPollingOption:(NFCPollingISO14443 | NFCPollingISO15693)
+                       delegate:self queue:dispatch_get_main_queue()];
         }
 
-        NSData *ndefPayload = [NSData dataWithBytes:ndefBytes length:sizeof(ndefBytes)];
-        NFCNDEFPayload *payload = [NFCNDEFPayload ndefPayloadWithFormat:NFCTypeNameFormatMedia type:[mimeType dataUsingEncoding:NSUTF8StringEncoding] identifier:[NSData data] payload:ndefPayload];
-        self.ndefMessageToWrite = [[NFCNDEFMessage alloc] initWithRecords:@[payload]];
+        self.nfcSession.alertMessage = self.alertMessage;
+        sessionCallbackId = [command.callbackId copy];
 
-        self.activeCommand = command;
-        self.isWritingMode = YES;
-
-        if (self.tagSession) {
-            [self.tagSession invalidateSession];
+        if (reusingSession) {
+            [self writeNdefTag:self.nfcSession status:connectedTagStatus tag:connectedTag];
         }
-
-        self.tagSession = [[NFCTagReaderSession alloc] initWithPollingOption:NFCPollingISO14443 queue:nil delegate:self];
-        self.tagSession.alertMessage = alertMessage;
-        [self.tagSession beginSession];
+        else {
+            [self.nfcSession beginSession];
+        }
     }
-     */
 }
 
 - (void)endSession:(CDVInvokedUrlCommand*)command {
@@ -126,7 +153,7 @@
         }
                 
         if (self.isWritingMode) {
-            ;//[self writeNdefTag:session status:status tag:tag];
+            [self writeNdefTag:session status:status tag:tag];
         } else {
             // save tag & status so we can re-use in potential write
             self->connectedTagStatus = status;
@@ -142,13 +169,7 @@
         [self sendError:@"Tag does not support NDEF."];
         return;
     }
-    /*
-    if (status == NFCNDEFStatusReadOnly) {
-        metaData[@"isWritable"] = @FALSE;
-    } else if (status == NFCNDEFStatusReadWrite) {
-        metaData[@"isWritable"] = @TRUE;
-    }
-    */
+    
     [tag readNDEFWithCompletionHandler:^(NFCNDEFMessage * _Nullable message, NSError * _Nullable error) {
         // Error Code=403 "NDEF tag does not contain any NDEF message" is not an error for this plugin
         if (error && error.code != 403) {
@@ -172,30 +193,11 @@
         for(NFCNDEFPayload *record in ndefMessage.records) {
             NSMutableDictionary *nfcRecord = [NSMutableDictionary new];
             
-            if(record.identifier != nil && record.identifier.length > 0) {
-                nfcRecord[@"id"] = [self uint8ArrayFromNSData: record.identifier];
-            }
-            else {
-                nfcRecord[@"id"] = [NSNull null];
-            }
-            
-            int tnf = (int)record.typeNameFormat;
-            nfcRecord[@"tnf"] = [NSNumber numberWithInt:tnf];
-            
-            if(record.type != nil && record.type.length > 0) {
-                nfcRecord[@"mimeType"] = [[NSString alloc] initWithData:record.type encoding:NSUTF8StringEncoding];
-            }
-            else {
-                nfcRecord[@"mimeType"] = [NSNull null];
-            }
-            
-            if(record.payload != nil && record.payload.length > 0){
-                nfcRecord[@"ndefData"] = [self uint8ArrayFromNSData: record.payload];
-            }
-            else {
-                nfcRecord[@"ndefData"] = [NSNull null];
-            }
-            
+            nfcRecord[@"id"] = [self uint8ArrayFromNSData: record.identifier];
+            nfcRecord[@"tnf"] = [NSNumber numberWithInt:(int)record.typeNameFormat];
+            nfcRecord[@"mimeType"] = [[NSString alloc] initWithData:record.type encoding:NSUTF8StringEncoding];
+            nfcRecord[@"ndefData"] = [self uint8ArrayFromNSData: record.payload];
+    
             [nfcMessage[@"ndefRecords"] addObject:[nfcRecord copy]];
         }
     }
@@ -208,6 +210,42 @@
         sessionCallbackId = NULL;
     }
 }
+
+- (void)writeNdefTag:(NFCReaderSession * _Nonnull)session status:(NFCNDEFStatus)status tag:(id<NFCNDEFTag>)tag {
+    switch (status) {
+        case NFCNDEFStatusNotSupported:
+            [self sendError:@"Tag does not support NDEF."];
+            [self closeSession];
+            break;
+            
+        case NFCNDEFStatusReadOnly:
+            [self sendError:@"Tag is read only."];
+            [self closeSession];
+            break;
+            
+        case NFCNDEFStatusReadWrite: {
+            [tag writeNDEF: self.messageToWrite completionHandler:^(NSError * _Nullable error) {
+                if (error) {
+                    [self sendError:@"Write failed."];
+                    [self closeSession];
+                } else {
+                    session.alertMessage = self.ndefWrittenAlertMessage;
+                    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+                    [self.commandDelegate sendPluginResult:pluginResult callbackId:self->sessionCallbackId];
+                    [self closeSession];
+                }
+            }];
+            break;
+        }
+            
+        default: {
+            [self sendError:@"Unknown NDEF tag status."];
+            [self closeSession];
+        }
+    }
+}
+
+#pragma mark - helper methods
 
 - (NSArray *) uint8ArrayFromNSData:(NSData *) data {
     const void *bytes = [data bytes];
@@ -226,6 +264,14 @@
         [data appendBytes:&b length:1];
     }
     return data;
+}
+
+- (NSData *)stringToNSData:(NSString *)inputString {
+    if (inputString == nil || inputString.length == 0) {
+        return [NSData data]; // Return an empty NSData object
+    }
+    
+    return [inputString dataUsingEncoding:NSUTF8StringEncoding];
 }
 
 #pragma mark - NFC session handlers

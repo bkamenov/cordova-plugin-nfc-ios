@@ -14,6 +14,14 @@ const NFC = {
   TNF_RESERVED: 0x07, // Reserved (do not use)
 
   /**
+   * Use this method to set empty data for id or ndefData
+   * in a NDEF record. 
+   */
+  unset: function () { 
+    return new ArrayBuffer(0); 
+  },
+
+  /**
    * To check whether the device has NFC support.
    * 
    * Example usage:
@@ -95,7 +103,7 @@ const NFC = {
    * (tag) => {
    *  console.log("TAG SERIAL: " + tag.tagSerial);
    * 
-   *  for(const record in tag.ndefRecords) {
+   *  for(const record of tag.ndefRecords) {
    *    if(record.mimeType)
    *      console.log("MIME: " + record.mimeType);
    *    
@@ -112,7 +120,7 @@ const NFC = {
    *  cordova.plugins.NFC.write(
    *  [  
    *    {
-   *      id: null,
+   *      id: cordova.plugins.NFC.unset(),
    *      tnf: cordova.plugins.NFC.TNF_MEDIA,
    *      mimeType: "text/plain",
    *      ndefData: encoder.encode(text).buffer
@@ -128,7 +136,8 @@ const NFC = {
    *  (error) => {
    *    console.log("Session closed or error writing tag: " + error);
    *  },
-   *  "Hold your phone near an NFC tag.");
+   *  "Hold your phone near an NFC tag.",
+   *  "Data has been successfully written.");
    * },
    * (error) => {
    *   console.log("Session closed or error reading tag: " + error);
@@ -143,7 +152,7 @@ const NFC = {
       };
       for(const ndef of tag.ndefRecords) {
         transformedTag.ndefRecords.push({
-          id: ndef.id !== null ? intArrayToArrayBuffer(ndef.id) : null,
+          id: intArrayToArrayBuffer(ndef.id),
           tnf: ndef.tnf,
           mimeType: ndef.mimeType,
           ndefData: intArrayToArrayBuffer(ndef.ndefData)
@@ -175,6 +184,7 @@ const NFC = {
    * error - error callback called on premature session closed or write error.
    * 
    * alertMessage - Optional string to show on iOS NFC alert message.
+   * ndefWrittenAlertMessage - Optional string to show on iOS NFC alert message when data has been written.
    * 
    * In Objective C, the function checks first wether we have an open session.
    * If this is the case, the session is used for the write.
@@ -192,7 +202,7 @@ const NFC = {
    *  cordova.plugins.NFC.write(
    *   [
    *     {
-   *       id: null,
+   *       id: cordova.plugins.NFC.unset(),
    *       tnf: cordova.plugins.NFC.TNF_MEDIA,
    *       mimeType: "text/plain",
    *       ndefData: encoder.encode(text).buffer
@@ -208,20 +218,21 @@ const NFC = {
    *  (error) => {
    *    console.log("Session closed or error writing tag: " + error);
    *  },
-   *  "Hold your phone near an NFC tag.");
+   *  "Hold your phone near an NFC tag.",
+   *  "Data has been successfully written.");
    */
-  write: function (ndefRecords, success, error, alertMessage) {
+  write: function (ndefRecords, success, error, alertMessage, ndefWrittenAlertMessage) {
     const transformedRecords = [];
     for(const ndef of ndefRecords) {
       const record = {
-        id: ndef.id ? Array.from(new Uint8Array(ndef.id)) : null,
+        id: Array.from(new Uint8Array(ndef.id)),
         tnf: ndef.tnf,
         mimeType: ndef.mimeType,
         ndefData: Array.from(new Uint8Array(ndef.ndefData))
       }
       transformedRecords.push(record);
     }
-    exec(success, error, 'NfcPlugin', 'write', [transformedRecords, alertMessage]);
+    exec(success, error, 'NfcPlugin', 'write', [transformedRecords, alertMessage, ndefWrittenAlertMessage]);
   },
 
   /**
