@@ -25,14 +25,20 @@
 
     <framework src="CoreNFC.framework" weak="true" />
     
-    <config-file parent="com.apple.developer.nfc.readersession.formats" platform="ios" target="*-Debug.plist">
+    <config-file target="*-Debug.plist" parent="com.apple.developer.nfc.readersession.formats">
       <array>
         <string>TAG</string>
       </array>
     </config-file>
-    <config-file parent="com.apple.developer.nfc.readersession.formats" platform="ios" target="*-Release.plist">
+    <config-file target="*-Release.plist" parent="com.apple.developer.nfc.readersession.formats">
       <array>
         <string>TAG</string>
+      </array>
+    </config-file>
+
+    <config-file target="*-Info.plist" parent="com.apple.developer.nfc.readersession.iso7816.select-identifiers">
+      <array>
+        <string>D2760000850101</string>
       </array>
     </config-file>
 
