@@ -42,7 +42,7 @@
       </array>
     </config-file>
 
-    <preference name="NFC_USAGE_DESCRIPTION" default="Read/Write NDEF records." />
+    <preference name="NFC_USAGE_DESCRIPTION" default="[nfc-usage-desc]" />
     <config-file target="*-Info.plist" parent="NFCReaderUsageDescription">
       <string>$NFC_USAGE_DESCRIPTION</string>
     </config-file>
